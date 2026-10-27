@@ -1,0 +1,46 @@
+name: Deploy demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      fallar_despliegue:
+        description: "Simular un fallo en el paso de despliegue"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pruebas
+        run: bash pruebas.sh
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: sitio
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - name: Deploy - comprobación previa
+        if: ${{ inputs.fallar_despliegue }}
+        run: |
+          echo "Fallo simulado en el despliegue"
+          exit 1
+      - name: Deploy to GitHub Pages
+        id: despliegue
+        uses: actions/deploy-pages@v4
